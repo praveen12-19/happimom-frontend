@@ -1,0 +1,18 @@
+.calendar-page-container {
+  min-height: calc(100vh - 72px);
+  padding: 2.2rem 2rem 5rem 2rem;
+  background-color: var(--bg-page);
+  display: flex;
+  justify-content: center;
+}
+
+.calendar-page-content {
+  width: 100%;
+  max-width: 1140px;
+}
+
+@media (max-width: 768px) {
+  .calendar-page-container {
+    padding: 1.2rem 0.85rem 4.5rem 0.85rem;
+  }
+}

@@ -1,0 +1,121 @@
+.today-date-banner-card {
+  width: 100%;
+  background: linear-gradient(135deg, #fbb8d1 0%, #d8c2f8 45%, #94bef8 100%);
+  border-radius: 22px;
+  padding: 1.6rem 2.4rem;
+  margin-bottom: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  box-shadow: 0 10px 25px -4px rgba(148, 190, 248, 0.35), 0 4px 12px -2px rgba(251, 184, 209, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.today-date-banner-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -4px rgba(148, 190, 248, 0.42), 0 6px 14px -2px rgba(251, 184, 209, 0.35);
+}
+
+/* Left Content */
+.banner-left-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* 3D-style calendar icon */
+.calendar-3d-icon {
+  width: 68px;
+  height: 68px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18), 0 2px 6px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.calendar-icon-header {
+  height: 22px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 14px;
+}
+
+.cal-ring {
+  width: 5px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 3px;
+  margin-top: -6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.calendar-icon-body {
+  flex: 1;
+  background: #f8fafc;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 6px 10px 8px 10px;
+  align-items: center;
+  justify-items: center;
+}
+
+.cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: #cbd5e1;
+}
+
+.cal-dot.active-blue {
+  background: #2563eb;
+  transform: scale(1.15);
+}
+
+/* Date Details */
+.banner-date-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.banner-top-label {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1f2937;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.2rem;
+}
+
+.banner-large-date {
+  font-family: var(--font-heading);
+  font-size: 2.15rem;
+  font-weight: 800;
+  color: #ff2a6d;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.banner-subtext-day {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 860px) {
+  .today-date-banner-card {
+    padding: 1.25rem 1.4rem;
+  }
+
+  .banner-large-date {
+    font-size: 1.75rem;
+  }
+}

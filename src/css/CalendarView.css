@@ -1,0 +1,260 @@
+.happimom-calendar-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2.2rem 2.5rem;
+  box-shadow: 0 4px 24px rgba(220, 80, 120, 0.06);
+  border: 1px solid #f6ebf0;
+  width: 100%;
+}
+
+/* Header: Left and Right pink arrow boxes with centered Month Title */
+.happimom-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.header-month-title {
+  font-family: var(--font-heading);
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #1f2937;
+  letter-spacing: -0.02em;
+  text-align: center;
+  flex: 1;
+}
+
+.header-arrow-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ffd3df;
+  color: #e03b6d;
+  font-size: 1.3rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.header-arrow-btn:hover {
+  background: #ff5580;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.header-arrow-btn:active {
+  transform: scale(0.96);
+}
+
+/* Weekday column headers */
+.happimom-weekdays-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 14px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.weekday-column-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #374151;
+  padding: 0.4rem 0;
+}
+
+/* Calendar Grid */
+.happimom-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 14px;
+}
+
+/* Individual Day Block */
+.day-block {
+  aspect-ratio: 1.05 / 1;
+  min-height: 84px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.day-block:hover:not(.empty-day-block) {
+  transform: translateY(-2px);
+}
+
+.day-number-label {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.empty-day-block {
+  background: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Block Variants matching user screenshot */
+/* Normal Days: White background with clean subtle light grey border */
+.block-normal {
+  background: #ffffff;
+  border: 1px solid #f1f3f5;
+  color: #1f2937;
+}
+
+.block-normal:hover {
+  background: #fff8fa;
+  border-color: #f7d4df;
+}
+
+
+
+/* Today's Date marked to relate to the banner hot pink color */
+.block-today {
+  border: 2.5px solid #ff2a6d !important;
+  background: #fff8fa;
+  box-shadow: 0 4px 14px rgba(255, 42, 109, 0.22);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.block-today .day-number-label {
+  color: #ff2a6d;
+  font-weight: 800;
+}
+
+.today-badge-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: #ff2a6d;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.block-selected {
+  outline: 3px solid #e11d48;
+  outline-offset: 2px;
+}
+
+/* Day event details preview */
+.selected-day-banner {
+  margin-top: 1.5rem;
+  padding: 1rem 1.4rem;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.banner-pink {
+  background: #fff0f4;
+  border-left: 5px solid #ff5580;
+}
+
+.banner-green {
+  background: #f0fdf4;
+  border-left: 5px solid #6cd37c;
+}
+
+.banner-orange {
+  background: #fff9ed;
+  border-left: 5px solid #faa53d;
+}
+
+.banner-outline {
+  background: #fff0f4;
+  border-left: 5px solid #ff4d6d;
+}
+
+.selected-day-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.selected-day-pill {
+  font-size: 0.82rem;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 0.3rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.selected-day-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.selected-day-text strong {
+  font-size: 0.98rem;
+  color: #1f2937;
+}
+
+.selected-day-text span {
+  font-size: 0.84rem;
+  color: #6b7280;
+}
+
+.selected-day-close {
+  background: transparent;
+  font-size: 1.1rem;
+  color: #9ca3af;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+}
+
+.selected-day-close:hover {
+  color: #1f2937;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .happimom-calendar-card {
+    padding: 1.25rem 1rem;
+  }
+  .happimom-calendar-header {
+    margin-bottom: 1.25rem;
+  }
+  .header-month-title {
+    font-size: 1.35rem;
+  }
+  .header-arrow-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+  .happimom-weekdays-row,
+  .happimom-calendar-grid {
+    gap: 6px;
+  }
+  .day-block {
+    min-height: 52px;
+    border-radius: 8px;
+  }
+  .day-number-label {
+    font-size: 0.95rem;
+  }
+}

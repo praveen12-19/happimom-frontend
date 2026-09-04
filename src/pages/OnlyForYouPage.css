@@ -1,0 +1,138 @@
+.only-for-u-container {
+  min-height: calc(100vh - 72px);
+  padding: 2.2rem 2rem 5rem 2rem;
+  background-color: var(--bg-page);
+  display: flex;
+  justify-content: center;
+}
+
+.only-for-u-content {
+  width: 100%;
+  max-width: 1080px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+}
+
+.u-greeting-banner {
+  text-align: center;
+  background: #ffeef3;
+  border: 1px solid #fcdde6;
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: 0 4px 16px rgba(255, 94, 136, 0.06);
+}
+
+.u-tag {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--primary-pink);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+  display: inline-block;
+}
+
+.u-title {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1f2937;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.35rem;
+}
+
+.u-subtitle {
+  font-size: 1.02rem;
+  color: #6b7280;
+}
+
+.affirmation-card {
+  background: linear-gradient(135deg, #ff7e9e 0%, #9e91ff 100%);
+  color: #ffffff;
+  border-radius: var(--radius-xl);
+  padding: 1.8rem 2.2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  box-shadow: 0 10px 25px rgba(158, 145, 255, 0.25);
+}
+
+.affirmation-icon {
+  font-size: 2.4rem;
+}
+
+.affirmation-text h3 {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 0.2rem;
+}
+
+.affirmation-text p {
+  font-size: 1.05rem;
+  font-style: italic;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.self-care-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.4rem;
+}
+
+.self-care-card {
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  padding: 1.6rem;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 4px 16px rgba(224, 70, 114, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.self-care-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(224, 70, 114, 0.1);
+}
+
+.care-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.care-card-icon {
+  font-size: 2rem;
+}
+
+.care-card-time {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--primary-pink);
+  background: #fff0f5;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+}
+
+.care-card-title {
+  font-family: var(--font-heading);
+  font-size: 1.18rem;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.care-card-desc {
+  font-size: 0.92rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .self-care-grid {
+    grid-template-columns: 1fr;
+  }
+}
