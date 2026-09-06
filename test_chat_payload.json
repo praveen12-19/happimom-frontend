@@ -1,0 +1,28 @@
+{
+  "greetingPayload": {
+    "message": "Hello HappiMoM! I am feeling good today.",
+    "userId": 1,
+    "history": []
+  },
+  "symptomPayload": {
+    "message": "I have mild morning sickness and lower back ache in week 12.",
+    "userId": 1,
+    "history": [
+      {
+        "role": "user",
+        "text": "Hi"
+      },
+      {
+        "role": "model",
+        "text": "Hello! How can I help you today?"
+      }
+    ]
+  },
+  "filePayload": {
+    "message": "Please explain this prenatal prescription document.",
+    "userId": 1,
+    "fileBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "fileMimeType": "image/png",
+    "history": []
+  }
+}

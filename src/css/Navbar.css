@@ -138,12 +138,20 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(255, 94, 136, 0.2);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
   flex-shrink: 0;
+  text-decoration: none;
 }
 
 .profile-avatar-wrapper:hover {
-  transform: scale(1.06);
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(255, 94, 136, 0.4);
+}
+
+.profile-avatar-wrapper.active-profile {
+  outline: 2.5px solid #ff3377;
+  outline-offset: 2px;
+  box-shadow: 0 0 14px rgba(255, 51, 119, 0.45);
 }
 
 .profile-avatar-img {

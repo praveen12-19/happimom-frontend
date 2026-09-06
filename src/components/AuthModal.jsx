@@ -18,7 +18,6 @@ const AuthModal = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Reset form fields completely whenever the modal opens
   useEffect(() => {
     if (isAuthModalOpen) {
       setEmail('');
@@ -77,7 +76,7 @@ const AuthModal = () => {
           id: loginRes.id,
           email: loginRes.email,
           profileComplete: loginRes.profileComplete || false,
-          name: ''
+          name: email.split('@')[0]
         };
 
         // Try getting user profile
@@ -87,7 +86,7 @@ const AuthModal = () => {
             userData = { ...userData, ...profile };
           }
         } catch (err) {
-          // If profile not complete yet, keep empty name
+          // If profile not complete yet, keep default name
         }
 
         login(userData);
@@ -102,7 +101,7 @@ const AuthModal = () => {
           id: loginRes.id,
           email: loginRes.email,
           profileComplete: loginRes.profileComplete || false,
-          name: ''
+          name: email.split('@')[0]
         };
 
         try {

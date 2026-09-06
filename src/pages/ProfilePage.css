@@ -232,30 +232,117 @@
   background: #e2e8f0;
 }
 
-.widget-details-box {
-  background: #f8fafc;
+.emergency-contacts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.emergency-contact-box {
+  background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: var(--radius-md);
-  padding: 1.1rem;
+  border-radius: var(--radius-lg);
+  padding: 1.15rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-}
-
-.widget-item {
-  display: flex;
   justify-content: space-between;
-  font-size: 0.92rem;
+  gap: 0.75rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 
-.widget-label {
-  color: #64748b;
+.emergency-contact-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.contact-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.contact-box-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.contact-call-link {
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 1px 4px rgba(22, 163, 74, 0.25);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.contact-call-link:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.contact-box-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.contact-person-name {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-person-phone {
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
-.widget-val {
+.contact-person-phone .phone-link {
   color: #1e293b;
-  font-weight: 700;
+  text-decoration: none;
+}
+
+.contact-person-phone .phone-link:hover {
+  text-decoration: underline;
+  color: #0f172a;
+}
+
+.contact-person-phone .phone-empty {
+  color: #94a3b8;
+  font-size: 0.86rem;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.contact-person-role {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+@media (max-width: 900px) {
+  .emergency-contacts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Incomplete Profile Callout Banner */

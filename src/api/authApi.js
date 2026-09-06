@@ -56,3 +56,19 @@ export const updateUserProfile = async (userId, profileData) => {
   }
   return data;
 };
+
+export const uploadMedicalFile = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${BASE_URL}/upload/medical-file`, {
+    method: 'POST',
+    body: formData
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || data.message || 'Failed to upload medical file');
+  }
+  return data;
+};
