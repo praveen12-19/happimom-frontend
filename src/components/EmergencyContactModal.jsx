@@ -1,47 +1,113 @@
 import React, { useState, useEffect } from 'react';
 import { useTracker } from '../context/TrackerContext';
+import { updateUserProfile } from '../api/authApi';
 import '../css/EmergencyContactModal.css';
 
 const EmergencyContactModal = () => {
-  const { isEmergencyModalOpen, setIsEmergencyModalOpen, emergencyContact, updateEmergencyContact } = useTracker();
+  const { isEmergencyModalOpen, setIsEmergencyModalOpen, user, updateUser } = useTracker();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    relationship: '',
-    hospital: ''
+    husbandName: '',
+    husbandContact: '',
+    parentName: '',
+    parentContact: '',
+    doctorName: '',
+    doctorPhone: '',
+    doctorAddress: ''
   });
 
-  // Sync state whenever modal opens or contact updates
+  // Sync state whenever modal opens or user updates
   useEffect(() => {
-    if (emergencyContact) {
+    if (user) {
       setFormData({
-        name: emergencyContact.name || '',
-        phone: emergencyContact.phone || '',
-        relationship: emergencyContact.relationship || '',
-        hospital: emergencyContact.hospital || ''
+        husbandName: user.husbandName || user.partnerDetails?.partnerName || user.partnerName || '',
+        husbandContact: user.husbandContact || user.partnerDetails?.partnerContact || user.partnerContact || '',
+        parentName: user.parentName || user.parentDetails?.parentName || '',
+        parentContact: user.parentContact || user.parentDetails?.parentContact || '',
+        doctorName: user.emergencyContact || user.doctorClinicSupport?.doctorName || '',
+        doctorPhone: user.doctorPhone || user.doctorClinicSupport?.doctorPhone || '',
+        doctorAddress: user.doctorAddress || user.doctorClinicSupport?.doctorAddress || ''
       });
+      setErrorMsg('');
+      setSavedSuccess(false);
     }
-  }, [emergencyContact, isEmergencyModalOpen]);
+  }, [user, isEmergencyModalOpen]);
 
-  // Close on Escape key
+  // Close on Escape key and lock body scrolling
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isEmergencyModalOpen) {
-        setIsEmergencyModalOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    if (isEmergencyModalOpen) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setIsEmergencyModalOpen(false);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = original;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
   }, [isEmergencyModalOpen, setIsEmergencyModalOpen]);
 
   if (!isEmergencyModalOpen) return null;
 
+  const partnerName = formData.husbandName || user?.husbandName || user?.partnerDetails?.partnerName || user?.partnerName || '';
+  const partnerPhone = formData.husbandContact || user?.husbandContact || user?.partnerDetails?.partnerContact || user?.partnerContact || '';
+
+  const parentName = formData.parentName || user?.parentName || user?.parentDetails?.parentName || '';
+  const parentPhone = formData.parentContact || user?.parentContact || user?.parentDetails?.parentContact || '';
+
+  const doctorName = formData.doctorName || user?.emergencyContact || user?.doctorClinicSupport?.doctorName || '';
+  const doctorPhone = formData.doctorPhone || user?.doctorPhone || user?.doctorClinicSupport?.doctorPhone || '';
+  const doctorAddress = formData.doctorAddress || user?.doctorAddress || user?.doctorClinicSupport?.doctorAddress || '';
+
+  const orderedContacts = [
+    {
+      id: 'partner',
+      role: 'Partner',
+      badge: 'Partner',
+      badgeClass: 'partner-badge',
+      icon: '💍',
+      name: partnerName,
+      phone: partnerPhone,
+      address: null,
+      desc: 'Primary Emergency & Personal Contact'
+    },
+    {
+      id: 'parent',
+      role: 'Parent',
+      badge: 'Parent',
+      badgeClass: 'parent-badge',
+      icon: '👨‍👩‍👧',
+      name: parentName,
+      phone: parentPhone,
+      address: null,
+      desc: 'Family Support & Next of Kin'
+    },
+    {
+      id: 'doctor',
+      role: 'Primary Doctor / Clinic',
+      badge: 'Doctor / Clinic',
+      badgeClass: 'doctor-badge',
+      icon: '🩺',
+      name: doctorName,
+      phone: doctorPhone,
+      address: doctorAddress,
+      desc: 'Attending Physician & Delivery Clinic'
+    }
+  ];
+
+  const hasAnyContact = orderedContacts.some((c) => c.name || c.phone);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'phone') {
+    if (name === 'husbandContact' || name === 'parentContact' || name === 'doctorPhone') {
       const numeric = value.replace(/\D/g, '').slice(0, 10);
       setFormData((prev) => ({
         ...prev,
@@ -55,35 +121,77 @@ const EmergencyContactModal = () => {
     }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      alert('Please provide both a Name and Phone Number.');
+    setErrorMsg('');
+
+    // Phone validation
+    if (formData.husbandContact && formData.husbandContact.length !== 10) {
+      setErrorMsg('Partner contact number must be exactly 10 digits.');
+      return;
+    }
+    if (formData.parentContact && formData.parentContact.length !== 10) {
+      setErrorMsg("Parent's contact number must be exactly 10 digits.");
+      return;
+    }
+    if (formData.doctorPhone && formData.doctorPhone.length !== 10) {
+      setErrorMsg("Doctor's phone number must be exactly 10 digits.");
       return;
     }
 
-    if (formData.phone.trim().length !== 10) {
-      alert('Phone number must be exactly 10 digits.');
+    if (!formData.husbandContact && !formData.parentContact && !formData.doctorPhone) {
+      setErrorMsg('Please provide at least one contact phone number.');
       return;
     }
 
-    updateEmergencyContact({
-      ...emergencyContact,
-      name: formData.name,
-      phone: formData.phone,
-      relationship: formData.relationship || 'Emergency Contact',
-      hospital: formData.hospital || ''
-    });
+    // Instant Optimistic Update: Reflect changes immediately without waiting
+    const updatedLocal = {
+      husbandName: formData.husbandName,
+      husbandContact: formData.husbandContact,
+      parentName: formData.parentName,
+      parentContact: formData.parentContact,
+      emergencyContact: formData.doctorName,
+      doctorPhone: formData.doctorPhone,
+      doctorAddress: formData.doctorAddress,
+      partnerDetails: {
+        partnerName: formData.husbandName,
+        partnerContact: formData.husbandContact
+      },
+      parentDetails: {
+        parentName: formData.parentName,
+        parentContact: formData.parentContact
+      },
+      doctorClinicSupport: {
+        doctorName: formData.doctorName,
+        doctorPhone: formData.doctorPhone,
+        doctorAddress: formData.doctorAddress
+      }
+    };
 
+    updateUser(updatedLocal);
     setIsEditing(false);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+
+    // Persist to MySQL in the background
+    if (user?.id) {
+      const payload = {
+        ...user,
+        ...updatedLocal
+      };
+      updateUserProfile(user.id, payload)
+        .then((updated) => {
+          updateUser(updated);
+        })
+        .catch((err) => {
+          console.error('Failed to sync emergency contacts to database:', err);
+        });
+    }
   };
 
   return (
     <div className="modal-backdrop" onClick={() => setIsEmergencyModalOpen(false)}>
       <div
         className="emergency-modal-dialog"
+        style={{ maxWidth: isEditing ? '540px' : '520px' }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -94,8 +202,8 @@ const EmergencyContactModal = () => {
           <div className="header-icon-title">
             <span className="emergency-badge-icon">🚨</span>
             <div>
-              <h3 id="modal-title" className="emergency-title">Emergency Contact</h3>
-              <p className="emergency-subtitle">Instant medical & family support</p>
+              <h3 id="modal-title" className="emergency-title">Emergency Contacts</h3>
+              <p className="emergency-subtitle">Immediate family and medical support contacts</p>
             </div>
           </div>
           <button
@@ -111,128 +219,187 @@ const EmergencyContactModal = () => {
         <div className="emergency-modal-body">
           {savedSuccess && (
             <div className="save-success-alert">
-              <span>✅ Contact information updated successfully!</span>
+              <span>✅ Emergency contacts saved to database successfully!</span>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="auth-alert error-alert" style={{ marginBottom: '1rem' }}>
+              <span>{errorMsg}</span>
             </div>
           )}
 
           {!isEditing ? (
-            /* View Existing Contact */
+            /* View Mode: Ordered Contacts */
             <div className="view-contact-card">
-              <div className="contact-main-info">
-                <div className="contact-avatar-circle">
-                  <span>🩺</span>
-                </div>
-                <div className="contact-text-details">
-                  <span className="contact-relationship-tag">
-                    {emergencyContact?.relationship || 'Doctor / Specialist'}
-                  </span>
-                  <h4 className="contact-name">{emergencyContact?.name || 'Not set'}</h4>
-                  <p className="contact-hospital">{emergencyContact?.hospital || 'Women’s Health Specialist'}</p>
-                </div>
-              </div>
+              {hasAnyContact ? (
+                <div className="modal-ordered-contacts-list">
+                  {orderedContacts.map((contact) => (
+                    <div
+                      key={contact.id}
+                      className={`modal-contact-row ${contact.phone || contact.name ? 'row-active' : 'row-muted'}`}
+                    >
+                      <div className="modal-contact-icon-box">
+                        <span>{contact.icon}</span>
+                      </div>
 
-              <div className="contact-phone-box">
-                <span className="phone-label">Direct Phone:</span>
-                <a
-                  href={`tel:${emergencyContact?.phone || ''}`}
-                  className="phone-number-link"
-                >
-                  📞 {emergencyContact?.phone || 'No phone number added'}
-                </a>
-              </div>
+                      <div className="modal-contact-main">
+                        <div className="modal-contact-tag-row">
+                          <span className={`modal-priority-pill ${contact.badgeClass}`}>
+                            {contact.badge}
+                          </span>
+                        </div>
+                        <h4 className="modal-contact-title">
+                          {contact.name || contact.role}
+                        </h4>
+                        <div className="modal-contact-phone-row">
+                          {contact.phone ? (
+                            <a href={`tel:${contact.phone}`} className="modal-phone-link">
+                              📞 {contact.phone}
+                            </a>
+                          ) : (
+                            <span className="modal-phone-empty">Not added yet</span>
+                          )}
+                        </div>
+                        {contact.address && (
+                          <div className="modal-contact-sub">{contact.address}</div>
+                        )}
+                      </div>
 
-              {emergencyContact?.secondaryName && (
-                <div className="secondary-contact-box">
-                  <span className="secondary-title">Secondary Contact:</span>
-                  <div className="secondary-content">
-                    <strong>{emergencyContact.secondaryName}</strong> ({emergencyContact.secondaryRelationship})
-                    <span className="secondary-phone">{emergencyContact.secondaryPhone}</span>
-                  </div>
+                      {contact.phone && (
+                        <a
+                          href={`tel:${contact.phone}`}
+                          className="modal-row-call-btn"
+                          title={`Call ${contact.name || contact.role}`}
+                        >
+                          <span>📞</span> Call
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-contact-box" style={{ padding: '1.5rem 0' }}>
+                  <p className="no-contact-text">No emergency contacts saved yet in database.</p>
+                  <button
+                    type="button"
+                    className="add-inline-contact-btn"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    + Add Partner, Parent & Doctor Contacts
+                  </button>
                 </div>
               )}
 
-              <div className="modal-actions-bar">
-                <a
-                  href={`tel:${emergencyContact?.phone || ''}`}
-                  className="action-call-btn"
-                >
-                  <span>📞</span> Call Now
-                </a>
+              <div className="modal-actions-bar" style={{ marginTop: '1.25rem' }}>
                 <button
                   type="button"
                   className="action-edit-btn"
                   onClick={() => setIsEditing(true)}
+                  style={{ width: '100%' }}
                 >
-                  ✏️ Edit Contact
+                  ✏️ Edit / Manage Emergency Contacts
                 </button>
               </div>
             </div>
           ) : (
             /* Edit / Update Contact Form */
             <form onSubmit={handleSave} className="contact-edit-form">
-              <div className="form-group">
-                <label htmlFor="contact-name" className="form-label">
-                  Contact Name <span className="required-star">*</span>
-                </label>
-                <input
-                  id="contact-name"
-                  type="text"
-                  name="name"
-                  className="form-input"
-                  placeholder="Enter contact name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
+              {/* 1. Partner Details */}
+              <div className="form-contact-section">
+                <div className="section-title-badge">💍 Partner Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Partner's Name</label>
+                    <input
+                      type="text"
+                      name="husbandName"
+                      className="form-input"
+                      value={formData.husbandName}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Partner Phone</label>
+                    <input
+                      type="tel"
+                      name="husbandContact"
+                      className="form-input"
+                      value={formData.husbandContact}
+                      onChange={handleInputChange}
+                      maxLength={10}
+                      inputMode="numeric"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="contact-phone" className="form-label">
-                  Phone Number (10 Digits) <span className="required-star">*</span>
-                </label>
-                <input
-                  id="contact-phone"
-                  type="tel"
-                  name="phone"
-                  className="form-input"
-                  placeholder="Enter 10-digit phone number"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  maxLength={10}
-                  inputMode="numeric"
-                  pattern="[0-9]{10}"
-                  required
-                />
+              {/* 2. Parent Details */}
+              <div className="form-contact-section">
+                <div className="section-title-badge">👨‍👩‍👧 Parent Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Parent's Name</label>
+                    <input
+                      type="text"
+                      name="parentName"
+                      className="form-input"
+                      value={formData.parentName}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Parent Phone</label>
+                    <input
+                      type="tel"
+                      name="parentContact"
+                      className="form-input"
+                      value={formData.parentContact}
+                      onChange={handleInputChange}
+                      maxLength={10}
+                      inputMode="numeric"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="contact-relationship" className="form-label">
-                  Relationship / Role
-                </label>
-                <input
-                  id="contact-relationship"
-                  type="text"
-                  name="relationship"
-                  className="form-input"
-                  placeholder="Enter relationship or role"
-                  value={formData.relationship}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="contact-hospital" className="form-label">
-                  Clinic / Hospital Name (Optional)
-                </label>
-                <input
-                  id="contact-hospital"
-                  type="text"
-                  name="hospital"
-                  className="form-input"
-                  placeholder="Enter clinic or hospital name"
-                  value={formData.hospital}
-                  onChange={handleInputChange}
-                />
+              {/* 3. Doctor Details */}
+              <div className="form-contact-section">
+                <div className="section-title-badge">🩺 Doctor & Clinic Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '0.5rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Doctor / Clinic Name</label>
+                    <input
+                      type="text"
+                      name="doctorName"
+                      className="form-input"
+                      value={formData.doctorName}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Doctor Phone</label>
+                    <input
+                      type="tel"
+                      name="doctorPhone"
+                      className="form-input"
+                      value={formData.doctorPhone}
+                      onChange={handleInputChange}
+                      maxLength={10}
+                      inputMode="numeric"
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Hospital / Clinic Address</label>
+                  <input
+                    type="text"
+                    name="doctorAddress"
+                    className="form-input"
+                    value={formData.doctorAddress}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
 
               <div className="form-buttons-row">
@@ -240,11 +407,12 @@ const EmergencyContactModal = () => {
                   type="button"
                   className="btn-cancel"
                   onClick={() => setIsEditing(false)}
+                  disabled={loading}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-save">
-                  Save Changes
+                <button type="submit" className="btn-save" disabled={loading}>
+                  {loading ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

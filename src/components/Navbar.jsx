@@ -10,7 +10,6 @@ const Navbar = () => {
   const navItems = [
     { name: 'Calendar', path: '/calendar' },
     { name: 'Pregnancy', path: '/pregnancy', protected: true },
-    { name: 'Profile', path: '/profile', protected: true },
     { name: 'Only for U', path: '/only-for-u' }
   ];
 
@@ -74,8 +73,11 @@ const Navbar = () => {
             <div className="navbar-user-group">
               <NavLink
                 to="/profile"
-                className="profile-avatar-wrapper"
-                title={user?.name || user?.email || "Profile"}
+                className={({ isActive }) =>
+                  `profile-avatar-wrapper ${isActive ? 'active-profile' : ''}`
+                }
+                title={user?.name ? `${user.name} - View Profile Details` : "View Profile Details"}
+                aria-label="View Profile details"
               >
                 {user?.avatar ? (
                   <img

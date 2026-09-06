@@ -115,7 +115,12 @@ export const TrackerProvider = ({ children }) => {
     const saved = localStorage.getItem('happimom_emergency_contact');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed?.hospital?.includes("St. Mary") || parsed?.name?.includes("Robust")) {
+          localStorage.removeItem('happimom_emergency_contact');
+          return null;
+        }
+        return parsed;
       } catch (e) {
         console.error('Failed to parse saved emergency contact', e);
       }
