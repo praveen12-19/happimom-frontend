@@ -4,11 +4,35 @@ import { updateUserProfile } from '../api/authApi';
 import '../css/EmergencyContactModal.css';
 
 const EmergencyContactModal = () => {
-  const { isEmergencyModalOpen, setIsEmergencyModalOpen, user, updateUser } = useTracker();
+  const {
+    isEmergencyModalOpen,
+    setIsEmergencyModalOpen,
+    emergencyModalReadOnly,
+    setEmergencyModalReadOnly,
+    closeEmergencyModal,
+    user,
+    updateUser
+  } = useTracker();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const handleClose = () => {
+    setIsEditing(false);
+    if (closeEmergencyModal) {
+      closeEmergencyModal();
+    } else {
+      setIsEmergencyModalOpen(false);
+      if (setEmergencyModalReadOnly) setEmergencyModalReadOnly(false);
+    }
+  };
+
+  useEffect(() => {
+    if (emergencyModalReadOnly) {
+      setIsEditing(false);
+    }
+  }, [emergencyModalReadOnly]);
 
   const [formData, setFormData] = useState({
     husbandName: '',
@@ -44,7 +68,7 @@ const EmergencyContactModal = () => {
       document.body.style.overflow = 'hidden';
       const handleKeyDown = (e) => {
         if (e.key === 'Escape') {
-          setIsEmergencyModalOpen(false);
+          handleClose();
         }
       };
       window.addEventListener('keydown', handleKeyDown);
@@ -53,7 +77,7 @@ const EmergencyContactModal = () => {
         window.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [isEmergencyModalOpen, setIsEmergencyModalOpen]);
+  }, [isEmergencyModalOpen]);
 
   if (!isEmergencyModalOpen) return null;
 
@@ -188,10 +212,10 @@ const EmergencyContactModal = () => {
   };
 
   return (
-    <div className="modal-backdrop" onClick={() => setIsEmergencyModalOpen(false)}>
+    <div className="modal-backdrop" onClick={handleClose}>
       <div
         className="emergency-modal-dialog"
-        style={{ maxWidth: isEditing ? '540px' : '520px' }}
+        style={{ maxWidth: !emergencyModalReadOnly && isEditing ? '540px' : '520px' }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -208,7 +232,7 @@ const EmergencyContactModal = () => {
           </div>
           <button
             className="modal-close-btn"
-            onClick={() => setIsEmergencyModalOpen(false)}
+            onClick={handleClose}
             aria-label="Close modal"
           >
             ✕
@@ -229,80 +253,7 @@ const EmergencyContactModal = () => {
             </div>
           )}
 
-          {!isEditing ? (
-            /* View Mode: Ordered Contacts */
-            <div className="view-contact-card">
-              {hasAnyContact ? (
-                <div className="modal-ordered-contacts-list">
-                  {orderedContacts.map((contact) => (
-                    <div
-                      key={contact.id}
-                      className={`modal-contact-row ${contact.phone || contact.name ? 'row-active' : 'row-muted'}`}
-                    >
-                      <div className="modal-contact-icon-box">
-                        <span>{contact.icon}</span>
-                      </div>
-
-                      <div className="modal-contact-main">
-                        <div className="modal-contact-tag-row">
-                          <span className={`modal-priority-pill ${contact.badgeClass}`}>
-                            {contact.badge}
-                          </span>
-                        </div>
-                        <h4 className="modal-contact-title">
-                          {contact.name || contact.role}
-                        </h4>
-                        <div className="modal-contact-phone-row">
-                          {contact.phone ? (
-                            <a href={`tel:${contact.phone}`} className="modal-phone-link">
-                              📞 {contact.phone}
-                            </a>
-                          ) : (
-                            <span className="modal-phone-empty">Not added yet</span>
-                          )}
-                        </div>
-                        {contact.address && (
-                          <div className="modal-contact-sub">{contact.address}</div>
-                        )}
-                      </div>
-
-                      {contact.phone && (
-                        <a
-                          href={`tel:${contact.phone}`}
-                          className="modal-row-call-btn"
-                          title={`Call ${contact.name || contact.role}`}
-                        >
-                          <span>📞</span> Call
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="no-contact-box" style={{ padding: '1.5rem 0' }}>
-                  <p className="no-contact-text">No emergency contacts saved yet in database.</p>
-                  <button
-                    type="button"
-                    className="add-inline-contact-btn"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    + Add Partner, Parent & Doctor Contacts
-                  </button>
-                </div>
-              )}
-
-              <div className="modal-actions-bar" style={{ marginTop: '1.25rem' }}>
-                <button
-                  type="button"
-                  className="action-edit-btn"
-                  onClick={() => setIsEditing(true)}
-                  style={{ width: '100%' }}
-                >
-                  ✏️ Edit / Manage Emergency Contacts
-                </button>
-              </div>
-            </div>
-          ) : (
+          {!emergencyModalReadOnly && isEditing ? (
             /* Edit / Update Contact Form */
             <form onSubmit={handleSave} className="contact-edit-form">
               {/* 1. Partner Details */}
@@ -416,6 +367,87 @@ const EmergencyContactModal = () => {
                 </button>
               </div>
             </form>
+          ) : (
+            /* View Mode: Ordered Contacts */
+            <div className="view-contact-card">
+              {hasAnyContact ? (
+                <div className="modal-ordered-contacts-list">
+                  {orderedContacts.map((contact) => (
+                    <div
+                      key={contact.id}
+                      className={`modal-contact-row ${contact.phone || contact.name ? 'row-active' : 'row-muted'}`}
+                    >
+                      <div className="modal-contact-icon-box">
+                        <span>{contact.icon}</span>
+                      </div>
+
+                      <div className="modal-contact-main">
+                        <div className="modal-contact-tag-row">
+                          <span className={`modal-priority-pill ${contact.badgeClass}`}>
+                            {contact.badge}
+                          </span>
+                        </div>
+                        <h4 className="modal-contact-title">
+                          {contact.name || contact.role}
+                        </h4>
+                        <div className="modal-contact-phone-row">
+                          {contact.phone ? (
+                            <a href={`tel:${contact.phone}`} className="modal-phone-link">
+                              📞 {contact.phone}
+                            </a>
+                          ) : (
+                            <span className="modal-phone-empty">Not added yet</span>
+                          )}
+                        </div>
+                        {contact.address && (
+                          <div className="modal-contact-sub">{contact.address}</div>
+                        )}
+                      </div>
+
+                      {contact.phone && (
+                        <a
+                          href={`tel:${contact.phone}`}
+                          className="modal-row-call-btn"
+                          title={`Call ${contact.name || contact.role}`}
+                        >
+                          <span>📞</span> Call
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-contact-box" style={{ padding: '1.5rem 0' }}>
+                  <p className="no-contact-text">No emergency contacts saved yet in database.</p>
+                  {!emergencyModalReadOnly ? (
+                    <button
+                      type="button"
+                      className="add-inline-contact-btn"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      + Add Partner, Parent & Doctor Contacts
+                    </button>
+                  ) : (
+                    <p style={{ fontSize: '0.84rem', color: '#64748b', marginTop: '0.5rem' }}>
+                      Emergency contacts can be added and updated in your Profile section.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {!emergencyModalReadOnly && (
+                <div className="modal-actions-bar" style={{ marginTop: '1.25rem' }}>
+                  <button
+                    type="button"
+                    className="action-edit-btn"
+                    onClick={() => setIsEditing(true)}
+                    style={{ width: '100%' }}
+                  >
+                    ✏️ Edit / Manage Emergency Contacts
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

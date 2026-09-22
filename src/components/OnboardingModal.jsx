@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTracker } from '../context/TrackerContext';
-import { registerUser, loginUser, updateUserProfile, uploadMedicalFile } from '../api/authApi';
+import { registerUser, loginUser, updateUserProfile, uploadMedicalFile, deleteUploadedFile } from '../api/authApi';
 import '../css/OnboardingModal.css';
 
 const OnboardingModal = () => {
@@ -118,24 +118,24 @@ const OnboardingModal = () => {
 
       setFormData({
         name: savedName,
-        age: user.age ? String(user.age) : '',
+        age: user.age ? String(user.age) : (user.motherDetails?.age ? String(user.motherDetails.age) : ''),
         dob: user.dob || user.motherDetails?.dob || '',
-        city: user.city || '',
-        mobileNumber: user.mobileNumber || '',
-        address: user.address || '',
+        city: user.city || user.motherDetails?.city || '',
+        mobileNumber: user.mobileNumber || user.motherDetails?.mobileNumber || '',
+        address: user.address || user.motherDetails?.address || '',
         hasChildren: initialHasChildren,
         childrenCount: initialCount,
-        pregnancyDate: user.pregnancyDate || '',
-        bloodGroup: user.bloodGroup || '',
-        husbandName: user.husbandName || '',
-        husbandContact: user.husbandContact || '',
-        parentName: user.parentName || '',
-        parentContact: user.parentContact || '',
+        pregnancyDate: user.pregnancyDate || user.pregnancyTimeline?.pregnancyDate || '',
+        bloodGroup: user.bloodGroup || user.motherDetails?.bloodGroup || '',
+        husbandName: user.husbandName || user.partnerDetails?.partnerName || '',
+        husbandContact: user.husbandContact || user.partnerDetails?.partnerContact || '',
+        parentName: user.parentName || user.parentDetails?.parentName || '',
+        parentContact: user.parentContact || user.parentDetails?.parentContact || '',
         emergencyDoctor: user.doctorClinicSupport?.doctorName || user.emergencyContact || '',
         doctorPhone: user.doctorClinicSupport?.doctorPhone || user.doctorPhone || '',
         doctorAddress: user.doctorClinicSupport?.doctorAddress || user.doctorAddress || '',
-        medicalConditions: user.medicalConditions || '',
-        allergies: user.allergies || ''
+        medicalConditions: user.medicalConditions || user.pregnancyTimeline?.medicalConditions || '',
+        allergies: user.allergies || user.pregnancyTimeline?.allergies || ''
       });
       setChildrenList(initialChildren.slice(0, initialCount));
 
@@ -255,6 +255,7 @@ const OnboardingModal = () => {
         const newDoc = {
           name: file.name,
           url: result.url,
+          publicId: result.publicId,
           size: file.size,
           type: file.type || 'application/octet-stream',
           uploadedAt: new Date().toISOString(),
@@ -272,7 +273,15 @@ const OnboardingModal = () => {
     e.target.value = '';
   };
 
-  const handleRemoveFile = (indexToRemove) => {
+  const handleRemoveFile = async (indexToRemove) => {
+    const docToRemove = medicalFiles[indexToRemove];
+    if (docToRemove && (docToRemove.publicId || docToRemove.url)) {
+      try {
+        await deleteUploadedFile({ publicId: docToRemove.publicId, url: docToRemove.url });
+      } catch (err) {
+        console.warn('Failed to delete medical file from Cloudinary:', err);
+      }
+    }
     setMedicalFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 

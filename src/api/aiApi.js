@@ -75,7 +75,14 @@ export const analyzePrescriptionText = async (prescriptionText, userId = null, a
  * Conversational AI (Gemini 2.0 Flash with Groq fallback)
  * Handles casual greetings, personalized maternal advice, health guidance, and file analysis.
  */
-export const chatWithAI = async (message, userId = null, history = [], fileBase64 = null, fileMimeType = null) => {
+export const chatWithAI = async (
+  message,
+  userId = null,
+  history = [],
+  fileBase64 = null,
+  fileMimeType = null,
+  customInstructions = null
+) => {
   const safeUserId = (userId && !isNaN(Number(userId))) ? Number(userId) : null;
   const response = await fetch(`${BASE_URL}/ai/chat`, {
     method: 'POST',
@@ -87,7 +94,8 @@ export const chatWithAI = async (message, userId = null, history = [], fileBase6
       userId: safeUserId,
       history,
       fileBase64,
-      fileMimeType
+      fileMimeType,
+      customInstructions
     })
   });
 
@@ -109,7 +117,8 @@ export const chatWithAIStream = async (
   history = [],
   fileBase64 = null,
   fileMimeType = null,
-  onChunk = () => {}
+  onChunk = () => {},
+  customInstructions = null
 ) => {
   const safeUserId = (userId && !isNaN(Number(userId))) ? Number(userId) : null;
   const payload = {
@@ -117,7 +126,8 @@ export const chatWithAIStream = async (
     userId: safeUserId,
     history,
     fileBase64,
-    fileMimeType
+    fileMimeType,
+    customInstructions
   };
 
   try {
@@ -148,32 +158,51 @@ export const chatWithAIStream = async (
       buffer = lines.pop(); // Keep last incomplete line in buffer
 
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(':')) continue;
+        if (line.startsWith(':')) continue;
+        if (!line.startsWith('data:')) continue;
 
-        let content = line;
-        if (line.startsWith('data:')) {
-          content = line.slice(5);
+        let rawPayload = line.slice(5);
+        if (rawPayload.startsWith(' ')) {
+          rawPayload = rawPayload.slice(1);
+        }
+        if (rawPayload === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(rawPayload.trim());
+          if (parsed && typeof parsed.token === 'string') {
+            accumulatedText += parsed.token;
+            onChunk(parsed.token);
+            continue;
+          }
+        } catch (e) {
+          // Fallback if raw text SSE is received
         }
 
-        if (content === '[DONE]') continue;
-
-        if (content) {
-          accumulatedText += content;
-          onChunk(content);
+        if (rawPayload) {
+          accumulatedText += rawPayload;
+          onChunk(rawPayload);
         }
       }
     }
 
     // Flush any leftover buffer
-    if (buffer.trim() && !buffer.startsWith(':')) {
-      let content = buffer;
-      if (buffer.startsWith('data:')) {
-        content = buffer.slice(5);
-      }
-      if (content && content !== '[DONE]') {
-        accumulatedText += content;
-        onChunk(content);
+    if (buffer && buffer.startsWith('data:')) {
+      let rawPayload = buffer.slice(5);
+      if (rawPayload.startsWith(' ')) rawPayload = rawPayload.slice(1);
+      if (rawPayload && rawPayload !== '[DONE]') {
+        try {
+          const parsed = JSON.parse(rawPayload.trim());
+          if (parsed && typeof parsed.token === 'string') {
+            accumulatedText += parsed.token;
+            onChunk(parsed.token);
+          } else {
+            accumulatedText += rawPayload;
+            onChunk(rawPayload);
+          }
+        } catch (e) {
+          accumulatedText += rawPayload;
+          onChunk(rawPayload);
+        }
       }
     }
 
@@ -188,7 +217,7 @@ export const chatWithAIStream = async (
 
   } catch (err) {
     console.warn('Streaming failed, falling back to non-streaming chatWithAI:', err);
-    const fallbackResult = await chatWithAI(message, safeUserId, history, fileBase64, fileMimeType);
+    const fallbackResult = await chatWithAI(message, safeUserId, history, fileBase64, fileMimeType, customInstructions);
     if (fallbackResult?.reply) {
       onChunk(fallbackResult.reply);
     }

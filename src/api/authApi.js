@@ -72,3 +72,19 @@ export const uploadMedicalFile = async (file) => {
   }
   return data;
 };
+
+export const deleteUploadedFile = async ({ publicId, url } = {}) => {
+  const params = new URLSearchParams();
+  if (publicId) params.append('publicId', publicId);
+  if (url) params.append('url', url);
+
+  const response = await fetch(`${BASE_URL}/upload/file?${params.toString()}`, {
+    method: 'DELETE'
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to delete file from Cloudinary');
+  }
+  return data;
+};

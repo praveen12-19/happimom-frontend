@@ -45,6 +45,27 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* Globally hide scrollbars across Chrome, Edge, Safari, Firefox on all elements */
+html,
+body,
+#root,
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 body {
@@ -54,6 +75,8 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 button {

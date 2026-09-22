@@ -11,31 +11,96 @@ const fileToBase64 = (file) =>
     reader.onerror = (error) => reject(error);
   });
 
-// Formats markdown **bold** text and linebreaks cleanly for comfortable reading
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+// Normalizes inline/glued AI text and removes unwanted extra blank lines
+const preprocessMarkdown = (rawText) => {
+  if (!rawText) return '';
+  return rawText
+    // Merge any bullet or number that was separated onto its own line back into the text: "1.\n   (process)" -> "1. (process)"
+    .replace(/^(\s*(\d+\.|\*|-|•))\s*\n+\s*/gm, '$1 ')
+    // Collapse any 3+ consecutive newlines down to a single blank line
+    .replace(/\n{3,}/g, '\n\n')
+    // Collapse blank lines between consecutive list items so lists stay compact and close together
+    .replace(/(^|\n)(\s*(?:\d+\.|\*|-|•)\s+[^\n]+)\n\s*\n(?=\s*(?:\d+\.|\*|-|•)\s+)/g, '$1$2\n')
+    .replace(/(^|\n)(\s*(?:\d+\.|\*|-|•)\s+[^\n]+)\n\s*\n(?=\s*(?:\d+\.|\*|-|•)\s+)/g, '$1$2\n')
+    // Ensure headings have a clean newline before them
+    .replace(/([^\n])\s*(#{1,4}\s+)/g, '$1\n\n$2')
+    // Ensure glued bullet points or numbered lists have a single newline before them
+    .replace(/([^\n])\s+(\*|-|•)\s+(\*\*|[A-Za-z0-9])/g, '$1\n$2 $3')
+    .replace(/([^\n])\s+(\d+\.)\s+(\*\*|[A-Za-z0-9])/g, '$1\n$2 $3');
+};
+
+// Formats AI responses with ChatGPT-grade Markdown parsing (headings, ordered/unordered lists, bold, tables)
 const formatAiMessage = (rawText) => {
   if (!rawText) return null;
-  const lines = rawText.split('\n');
-  return lines.map((line, lIdx) => {
-    const segments = line.split(/(\*\*.*?\*\*)/g);
-    const formattedLine = segments.map((seg, sIdx) => {
-      if (seg.startsWith('**') && seg.endsWith('**') && seg.length >= 4) {
-        return <strong key={sIdx} className="ai-bold-highlight">{seg.slice(2, -2)}</strong>;
-      }
-      return seg;
-    });
+  const processed = preprocessMarkdown(rawText);
 
-    return (
-      <React.Fragment key={lIdx}>
-        {formattedLine}
-        {lIdx < lines.length - 1 && <br />}
-      </React.Fragment>
-    );
-  });
+  return (
+    <div className="chat-markdown-content">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({ node, ...props }) => <h3 className="ai-md-heading ai-md-h1" {...props} />,
+          h2: ({ node, ...props }) => <h3 className="ai-md-heading ai-md-h2" {...props} />,
+          h3: ({ node, ...props }) => <h4 className="ai-md-heading ai-md-h3" {...props} />,
+          h4: ({ node, ...props }) => <h5 className="ai-md-heading ai-md-h4" {...props} />,
+          p: ({ node, ...props }) => <p className="ai-md-p" {...props} />,
+          ul: ({ node, ...props }) => <ul className="ai-md-ul" {...props} />,
+          ol: ({ node, ...props }) => <ol className="ai-md-ol" {...props} />,
+          li: ({ node, ...props }) => <li className="ai-md-li" {...props} />,
+          strong: ({ node, ...props }) => <strong className="ai-md-strong" {...props} />,
+          table: ({ node, ...props }) => (
+            <div className="ai-md-table-container">
+              <table className="ai-md-table" {...props} />
+            </div>
+          ),
+          blockquote: ({ node, ...props }) => <blockquote className="ai-md-blockquote" {...props} />,
+        }}
+      >
+        {processed}
+      </ReactMarkdown>
+    </div>
+  );
 };
 
 const FloatingChatButton = () => {
-  const { isChatOpen, setIsChatOpen, user, pregnancy, setIsEmergencyModalOpen } = useTracker();
+  const {
+    isChatOpen,
+    setIsChatOpen,
+    user,
+    pregnancy,
+    setIsEmergencyModalOpen,
+    openEmergencyModal,
+    appointments,
+    schedulePrescriptionAppointment,
+    uploadPostAppointmentReport,
+    refreshAppointments
+  } = useTracker();
   const userName = user?.name || user?.email?.split('@')[0] || 'Mom';
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const pendingReportAppointments = (appointments || []).filter(
+    (a) => a.appointmentDate && a.appointmentDate <= todayStr && !a.reportFileUrl && a.status !== 'CANCELLED'
+  );
+
+  const [isReportBannerDismissed, setIsReportBannerDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem('happimom_dismissed_report_banner') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleDismissReportBanner = () => {
+    setIsReportBannerDismissed(true);
+    try {
+      sessionStorage.setItem('happimom_dismissed_report_banner', 'true');
+    } catch {
+      // ignore
+    }
+  };
 
   const [activeTopic, setActiveTopic] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -46,20 +111,71 @@ const FloatingChatButton = () => {
   const [filePreview, setFilePreview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // AI Personalization / Custom Instructions state
+  const [isPersonalizeModalOpen, setIsPersonalizeModalOpen] = useState(false);
+  const [customInstructions, setCustomInstructions] = useState(() => {
+    try {
+      return localStorage.getItem('happimom_ai_custom_instructions') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [instructionsDraft, setInstructionsDraft] = useState(customInstructions);
+
+  const saveCustomInstructions = (text) => {
+    const trimmed = text ? text.trim() : '';
+    setCustomInstructions(trimmed);
+    setInstructionsDraft(trimmed);
+    try {
+      if (trimmed) {
+        localStorage.setItem('happimom_ai_custom_instructions', trimmed);
+      } else {
+        localStorage.removeItem('happimom_ai_custom_instructions');
+      }
+    } catch (e) {
+      console.warn('Failed to save custom instructions to localStorage', e);
+    }
+  };
+
   const fileInputRef = useRef(null);
+  const chatInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const chatBodyRef = useRef(null);
 
-  // Press Escape to minimize if in full-page mode
+  // Press Escape to close personalization modal or minimize if in full-page mode
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isEnlarged) {
-        setIsEnlarged(false);
+      if (e.key === 'Escape') {
+        if (isPersonalizeModalOpen) {
+          setIsPersonalizeModalOpen(false);
+        } else if (isEnlarged) {
+          setIsEnlarged(false);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isEnlarged]);
+  }, [isEnlarged, isPersonalizeModalOpen]);
+
+  // Auto-focus input box whenever chat opens, enlarges, or personalization modal closes
+  useEffect(() => {
+    if (isChatOpen && !isPersonalizeModalOpen) {
+      const timer = setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [isChatOpen, isEnlarged, isPersonalizeModalOpen]);
+
+  // Automatically keep the input box focused when AI completes reply
+  useEffect(() => {
+    if (!isLoading && isChatOpen && !isPersonalizeModalOpen) {
+      const timer = setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isChatOpen, isPersonalizeModalOpen]);
 
   const scrollToBottom = (behavior = 'smooth') => {
     if (chatBodyRef.current) {
@@ -199,7 +315,7 @@ const FloatingChatButton = () => {
 
       // 3. Call conversational AI streaming endpoint (Groq primary for text, Gemini for files)
       const promptToSend = userText || (currentFile ? 'Please analyze this uploaded document or prescription and explain what it means in simple, reassuring terms for an expectant mother.' : '');
-      const result = await chatWithAIStream(promptToSend, user?.id, history, fileBase64, fileMimeType, onChunk);
+      const result = await chatWithAIStream(promptToSend, user?.id, history, fileBase64, fileMimeType, onChunk, customInstructions);
 
       // Ensure full text is captured if onChunk finished
       if (result?.reply && result.reply !== accumulatedText) {
@@ -219,9 +335,18 @@ const FloatingChatButton = () => {
         });
       }
 
-      // If user uploaded a receipt, also trigger optional background storage
-      if (currentFile) {
-        analyzePrescriptionFile(currentFile, user?.id, userText).catch(() => {});
+      // If user uploaded a document or report, store in Cloudinary & update calendar
+      if (currentFile && user?.id) {
+        const isReport = /report|consultation|doctor note|result|ultrasound/i.test(userText || '') || pendingReportAppointments.length > 0;
+        if (isReport && pendingReportAppointments.length > 0) {
+          uploadPostAppointmentReport(pendingReportAppointments[0].id, currentFile, userText)
+            .then(() => refreshAppointments())
+            .catch((e) => console.warn('Report auto-save notice:', e));
+        } else {
+          schedulePrescriptionAppointment({ file: currentFile, notes: userText })
+            .then(() => refreshAppointments())
+            .catch((e) => console.warn('Prescription auto-schedule notice:', e));
+        }
       }
 
     } catch (err) {
@@ -247,6 +372,7 @@ const FloatingChatButton = () => {
     } finally {
       setIsLoading(false);
       scrollToBottom('smooth');
+      setTimeout(() => chatInputRef.current?.focus(), 60);
     }
   };
 
@@ -272,6 +398,7 @@ const FloatingChatButton = () => {
 
   const handleQuickPrompt = (promptText) => {
     handleSendMessage(null, promptText);
+    setTimeout(() => chatInputRef.current?.focus(), 80);
   };
 
   return (
@@ -339,6 +466,40 @@ const FloatingChatButton = () => {
             </div>
           )}
 
+          {/* Proactive Appointment Follow-up Reminder */}
+          {pendingReportAppointments && pendingReportAppointments.length > 0 && !isReportBannerDismissed && (
+            <div className="chat-appointment-reminder-banner">
+              <div className="reminder-banner-content">
+                <span className="reminder-icon">🩺</span>
+                <div className="reminder-text">
+                  <strong>Consultation Follow-up Check-in:</strong>
+                  <p>
+                    You had an appointment with <strong>{pendingReportAppointments[0].doctorName || 'your doctor'}</strong> on {pendingReportAppointments[0].appointmentDate}.
+                    Upload your consultation report so AI can explain what the doctor told you and store it in Cloudinary!
+                  </p>
+                </div>
+              </div>
+              <div className="reminder-actions-group">
+                <button
+                  type="button"
+                  className="reminder-upload-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Attach Report 📎
+                </button>
+                <button
+                  type="button"
+                  className="reminder-banner-close-btn"
+                  onClick={handleDismissReportBanner}
+                  title="Close reminder"
+                  aria-label="Close attach report reminder"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Chat Messages Body */}
           <div className="chat-window-body" ref={chatBodyRef}>
             {/* Center Empty State to engage moms before chat starts */}
@@ -361,43 +522,8 @@ const FloatingChatButton = () => {
                   </div>
 
                   <p className="empty-state-desc">
-                    Ask me anything about your wellness, baby, or nutrition, or tap a topic below to get started:
+                    Ask me anything about your wellness, baby, or nutrition to get started!
                   </p>
-
-                  <div className="empty-state-chips">
-                    <button
-                      type="button"
-                      className="empty-suggestion-chip"
-                      onClick={() => handleQuickPrompt('Is feeling exhausted normal right now, and what helps?')}
-                    >
-                      <span className="chip-icon">😴</span>
-                      <span className="chip-text">Feeling tired & low energy</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="empty-suggestion-chip"
-                      onClick={() => handleQuickPrompt('What healthy foods and snacks should I focus on eating?')}
-                    >
-                      <span className="chip-icon">🥑</span>
-                      <span className="chip-text">Healthy nutrition & foods</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="empty-suggestion-chip"
-                      onClick={() => handleQuickPrompt('How is my baby growing and developing at this stage?')}
-                    >
-                      <span className="chip-icon">👶</span>
-                      <span className="chip-text">Baby's development</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="empty-suggestion-chip"
-                      onClick={() => handleQuickPrompt('What are safe, gentle remedies for nausea and morning sickness?')}
-                    >
-                      <span className="chip-icon">🍵</span>
-                      <span className="chip-text">Morning sickness remedies</span>
-                    </button>
-                  </div>
                 </div>
               </div>
             )}
@@ -424,7 +550,7 @@ const FloatingChatButton = () => {
                         type="button"
                         className="ai-emergency-action-btn"
                         style={{ marginTop: '0.5rem', width: '100%' }}
-                        onClick={() => setIsEmergencyModalOpen(true)}
+                        onClick={() => (openEmergencyModal ? openEmergencyModal({ readOnly: true }) : setIsEmergencyModalOpen(true))}
                       >
                         🚨 Call Doctor / Emergency Contact
                       </button>
@@ -482,7 +608,7 @@ const FloatingChatButton = () => {
                       <button
                         type="button"
                         className="ai-emergency-action-btn"
-                        onClick={() => setIsEmergencyModalOpen(true)}
+                        onClick={() => (openEmergencyModal ? openEmergencyModal({ readOnly: true }) : setIsEmergencyModalOpen(true))}
                       >
                         🚨 Call Doctor / Emergency Contact
                       </button>
@@ -572,7 +698,27 @@ const FloatingChatButton = () => {
               📎
             </button>
 
+            {/* ✨ Personalization / Custom Instructions Button */}
+            <button
+              type="button"
+              className={`chat-personalize-btn ${customInstructions ? 'has-custom-prompt' : ''}`}
+              onClick={() => {
+                setInstructionsDraft(customInstructions);
+                setIsPersonalizeModalOpen(true);
+              }}
+              title={
+                customInstructions
+                  ? 'Personalization Active: Click to edit custom instructions'
+                  : 'Personalize AI Responses (Custom Instructions)'
+              }
+              aria-label="Personalize AI responses"
+            >
+              <span className="personalize-sparkle-icon">✨</span>
+              {customInstructions && <span className="personalize-status-dot" />}
+            </button>
+
             <input
+              ref={chatInputRef}
               type="text"
               className="chat-input"
               placeholder={
@@ -586,7 +732,6 @@ const FloatingChatButton = () => {
                 scrollToBottom('smooth');
               }}
               onFocus={() => scrollToBottom('smooth')}
-              disabled={isLoading}
               autoFocus
             />
 
@@ -616,6 +761,91 @@ const FloatingChatButton = () => {
           </span>
           <span className="chat-pulse-ring" />
         </button>
+      )}
+
+      {/* Middle-of-Screen Personalization Modal Overlay */}
+      {isPersonalizeModalOpen && (
+        <div
+          className="personalize-modal-overlay"
+          onClick={() => setIsPersonalizeModalOpen(false)}
+        >
+          <div
+            className="personalize-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="personalize-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="personalize-modal-header">
+              <div className="personalize-header-left">
+                <span className="personalize-header-badge">✨</span>
+                <h3 id="personalize-modal-title" className="personalize-modal-title">
+                  AI Personalization
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="personalize-modal-close-btn"
+                onClick={() => setIsPersonalizeModalOpen(false)}
+                aria-label="Close personalization window"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body: Only the text box */}
+            <div className="personalize-modal-body">
+              <textarea
+                id="custom-ai-instructions"
+                className="personalize-textarea"
+                rows={7}
+                placeholder="Type your personalization instructions here..."
+                value={instructionsDraft}
+                onChange={(e) => setInstructionsDraft(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="personalize-modal-footer">
+              <button
+                type="button"
+                className="personalize-btn-reset"
+                onClick={() => {
+                  setInstructionsDraft('');
+                  saveCustomInstructions('');
+                }}
+                disabled={!customInstructions && !instructionsDraft}
+              >
+                Reset
+              </button>
+
+              <div className="personalize-footer-right-buttons">
+                <button
+                  type="button"
+                  className="personalize-btn-cancel"
+                  onClick={() => {
+                    setInstructionsDraft(customInstructions);
+                    setIsPersonalizeModalOpen(false);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="personalize-btn-save"
+                  onClick={() => {
+                    saveCustomInstructions(instructionsDraft);
+                    setIsPersonalizeModalOpen(false);
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </aside>
   );

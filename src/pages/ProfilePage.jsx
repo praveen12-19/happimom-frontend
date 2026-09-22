@@ -27,6 +27,23 @@ const formatDateDMY = (dateStr) => {
   return str;
 };
 
+const calculateAgeFromDob = (dobStr) => {
+  if (!dobStr) return '';
+  try {
+    const birth = new Date(dobStr);
+    if (isNaN(birth.getTime())) return '';
+    const today = new Date();
+    let calculated = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      calculated--;
+    }
+    return calculated > 0 && calculated < 120 ? calculated : '';
+  } catch {
+    return '';
+  }
+};
+
 const ProfilePage = () => {
   const { user, updateUser, pregnancy, emergencyContact, setIsEmergencyModalOpen, openAuthModal, openOnboardingModal } = useTracker();
   const navigate = useNavigate();
@@ -93,10 +110,13 @@ const ProfilePage = () => {
     const userChildren = parseChildren(user);
     const userHasChildren = user.hasChildren ? 'yes' : (user.childrenCount > 0 || userChildren.length > 0 ? 'yes' : 'no');
 
+    const initialDob = user.dob || user.motherDetails?.dob || '';
+    const initialAge = user.age || user.motherDetails?.age || calculateAgeFromDob(initialDob) || '';
+
     setFormData({
       name: savedName,
-      age: user.age || '',
-      dob: user.dob || user.motherDetails?.dob || '',
+      age: initialAge,
+      dob: initialDob,
       mobileNumber: user.mobileNumber || user.motherDetails?.mobileNumber || '',
       address: user.address || user.motherDetails?.address || '',
       hasChildren: userHasChildren,
@@ -124,10 +144,13 @@ const ProfilePage = () => {
             updateUser(profile);
             const profChildren = parseChildren(profile);
             const profHasChildren = profile.hasChildren ? 'yes' : (profile.childrenCount > 0 || profChildren.length > 0 ? 'yes' : 'no');
+            const profDob = profile.dob || profile.motherDetails?.dob || '';
+            const profAge = profile.age || profile.motherDetails?.age || calculateAgeFromDob(profDob) || '';
+
             setFormData({
               name: profile.name || '',
-              age: profile.age || '',
-              dob: profile.dob || profile.motherDetails?.dob || '',
+              age: profAge,
+              dob: profDob,
               mobileNumber: profile.mobileNumber || profile.motherDetails?.mobileNumber || '',
               address: profile.address || profile.motherDetails?.address || '',
               hasChildren: profHasChildren,
@@ -270,6 +293,7 @@ const ProfilePage = () => {
         doctorAddress: formData.doctorAddress
       },
       motherDetails: {
+        age: formData.age ? parseInt(formData.age, 10) : null,
         dob: formData.dob,
         mobileNumber: formData.mobileNumber,
         bloodGroup: formData.bloodGroup,

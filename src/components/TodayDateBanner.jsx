@@ -1,11 +1,17 @@
 import React from 'react';
+import { useTracker } from '../context/TrackerContext';
 import '../css/TodayDateBanner.css';
 
 const TodayDateBanner = ({ currentDate }) => {
   // Use real Date API
   const today = currentDate || new Date();
+  const { user, pregnancy } = useTracker();
 
-  // Format real date e.g. "September 3, 2026"
+  const isProfileComplete = Boolean(
+    user && (user.profileComplete === true || user.isProfileComplete === true)
+  );
+
+  // Format real date e.g. "September 7, 2026"
   const formattedToday = today.toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -39,6 +45,23 @@ const TodayDateBanner = ({ currentDate }) => {
           <span className="banner-subtext-day">{weekdayName}</span>
         </div>
       </div>
+
+      {isProfileComplete && pregnancy && (
+        <div className="banner-right-pregnancy-summary">
+          <div className="pregnancy-summary-capsule">
+            <div className="capsule-header">
+              <span className="capsule-badge">🌸 Week {pregnancy.currentWeek}</span>
+              <span className="capsule-trimester">{pregnancy.trimester} Trimester</span>
+            </div>
+            <div className="capsule-due-row">
+              <span className="capsule-icon">🍼</span>
+              <span className="capsule-due-text">
+                Expected: <strong>{pregnancy.dueDate}</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

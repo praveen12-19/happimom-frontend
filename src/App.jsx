@@ -6,6 +6,7 @@ import CalendarPage from './pages/CalendarPage';
 import Dashboard from './pages/Dashboard';
 import ProfilePage from './pages/ProfilePage';
 import OnlyForYouPage from './pages/OnlyForYouPage';
+import MemoriesPage from './pages/MemoriesPage';
 import AuthModal from './components/AuthModal';
 import OnboardingModal from './components/OnboardingModal';
 import './App.css';
@@ -29,6 +30,9 @@ function App() {
             {/* Profile Overview */}
             <Route path="/profile" element={<ProfilePage />} />
             
+            {/* Memories Keepsakes Gallery */}
+            <Route path="/memories" element={<MemoriesPage />} />
+
             {/* Only for U */}
             <Route path="/only-for-u" element={<OnlyForYouPage />} />
             

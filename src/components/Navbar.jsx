@@ -4,13 +4,14 @@ import { useTracker } from '../context/TrackerContext';
 import '../css/Navbar.css';
 
 const Navbar = () => {
-  const { user, openAuthModal, logout, setIsEmergencyModalOpen } = useTracker();
+  const { user, openAuthModal, logout, setIsEmergencyModalOpen, openEmergencyModal } = useTracker();
   const navigate = useNavigate();
 
   const navItems = [
     { name: 'Calendar', path: '/calendar' },
     { name: 'Pregnancy', path: '/pregnancy', protected: true },
-    { name: 'Only for U', path: '/only-for-u' }
+    { name: 'Only for U', path: '/only-for-u' },
+    { name: 'Memories', path: '/memories', protected: true }
   ];
 
   const handleNavClick = (e, item) => {
@@ -61,7 +62,7 @@ const Navbar = () => {
             <button
               id="emergency-contact-btn"
               className="emergency-btn"
-              onClick={() => setIsEmergencyModalOpen(true)}
+              onClick={() => (openEmergencyModal ? openEmergencyModal({ readOnly: true }) : setIsEmergencyModalOpen(true))}
               aria-label="Open Emergency Contact"
             >
               <span className="btn-icon">🚨</span>
